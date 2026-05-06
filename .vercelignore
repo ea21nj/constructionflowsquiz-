@@ -16,3 +16,43 @@ Public
 node_modules
 .git
 .next
+.docker
+.codex
+.cagent
+.antigravity
+.gemini
+.idlerc
+.matplotlib
+.npm
+.superpowers
+.zsh_history
+.bash_history
+*.mp4
+*.MP4
+*.pdf
+*.PDF
+*.PNG
+*.png
+*.JPEG
+*.jpeg
+*.xlsx
+*.XLSX
+*.docx
+*.DOCX
+*.doc
+*.DOC
+*.mov
+*.MOV
+*.avi
+*.AVI
+EVM_Construction_Template.xlsx
+build_evm.py
+linkedin_report.py
+postiz-explore
+superpowers
+yard-scope
+constructflows
+EA\ Context\ /
+EA\ Optimization\ /
+Outreach\ \&\ Content\ /
+Websites\ /

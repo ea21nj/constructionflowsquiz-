@@ -1,5 +1,6 @@
 {
-  "name": "construction-audit",
+  "name": "styleshowcase",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "ignores": [".git", "node_modules", ".Trash", "Documents", "Downloads", ".cache"]
 }
