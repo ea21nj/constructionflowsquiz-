@@ -1,6 +1,5 @@
 {
   "name": "styleshowcase",
   "cleanUrls": true,
-  "trailingSlash": false,
-  "ignores": [".git", "node_modules", ".Trash", "Documents", "Downloads", ".cache"]
+  "trailingSlash": false
 }
