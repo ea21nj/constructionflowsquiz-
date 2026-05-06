@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Audit — ConstructFlows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #C9A96E;
+    --foreground: #2C2C2C;
+    --surface1: #FDFCFA;
+    --surface2: #F5F2EC;
+    --surface3: #EDE9DE;
+    --secondary: #7A7A7A;
+    --border: #D4CEBC;
+    --shadow: 0 1px 2px rgba(44, 44, 44, 0.04), 0 2px 4px rgba(44, 44, 44, 0.06);
+    --shadow-lg: 0 4px 8px rgba(44, 44, 44, 0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--surface1); color: var(--foreground); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+  /* TOP BAR */
+  .topbar { width: 100%; background: var(--foreground); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: stretch; justify-content: space-between; height: 56px; }
+  .logo { font-family: 'Instrument Serif', serif; font-weight: 400; font-style: italic; font-size: 20px; letter-spacing: -0.5px; color: var(--surface1); display: flex; align-items: center; }
+  .logo span { color: var(--accent); }
+  .topbar-tag { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.3px; color: var(--secondary); display: flex; align-items: center; border-left: 1px solid var(--border); padding-left: 20px; margin-left: 20px; }
+
+  /* STAGE */
+  .stage { width: 100%; max-width: 700px; padding: 56px 32px 80px; display: none; animation: fadeUp .3s ease forwards; }
+  .stage.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* PILL */
+  .pill { display: inline-flex; align-items: center; gap: 7px; background: var(--surface2); color: var(--accent); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 12px; letter-spacing: 0.2px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 3px; margin-bottom: 28px; }
+  .pill::before { content: '→'; font-size: 9px; margin-right: 2px; }
+
+  /* HERO */
+  .hero-title { font-family: 'Instrument Serif', serif; font-weight: 400; font-style: italic; font-size: 56px; line-height: 1.1; letter-spacing: -0.5px; color: var(--foreground); margin-bottom: 28px; }
+  .hero-title em { font-style: italic; color: var(--accent); }
+  .hero-sub { font-size: 16px; font-weight: 400; color: var(--secondary); line-height: 1.8; margin-bottom: 40px; max-width: 560px; }
+  .spec-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); margin-bottom: 40px; background: var(--surface1); }
+  .spec-cell { padding: 24px 18px; border-right: 1px solid var(--border); }
+  .spec-cell:last-child { border-right: none; }
+  .spec-label { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.3px; color: var(--secondary); margin-bottom: 8px; }
+  .spec-val { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; letter-spacing: -0.3px; color: var(--accent); }
+  .hero-checks { list-style: none; margin-bottom: 40px; display: flex; flex-direction: column; gap: 12px; }
+  .hero-checks li { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 400; color: var(--foreground); }
+  .chk { width: 20px; height: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--accent); }
+  .hero-note { font-size: 13px; color: var(--secondary); margin-top: 16px; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 3px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.2px; cursor: pointer; border: 1px solid var(--accent); transition: background .15s, color .15s; }
+  .btn:active { transform: scale(.98); }
+  .btn-yellow { background: var(--accent); color: var(--surface1); border-color: var(--accent); }
+  .btn-yellow:hover { background: #B39857; border-color: #B39857; }
+  .btn-yellow:disabled { background: var(--surface2); color: var(--secondary); cursor: not-allowed; border-color: var(--border); }
+  .btn-ghost { background: transparent; color: var(--secondary); border-color: transparent; padding-left: 0; }
+  .btn-ghost:hover { color: var(--accent); }
+
+  /* QUIZ PROGRESS */
+  .progress-wrap { display: flex; align-items: stretch; border: 1px solid var(--border); background: var(--surface1); margin-bottom: 40px; overflow: hidden; }
+  .progress-steps-wrap { flex: 1; display: flex; align-items: flex-end; }
+  .progress-steps { display: flex; flex: 1; }
+  .prog-step { flex: 1; height: 6px; background: var(--surface2); border-right: 1px solid var(--border); transition: background .3s; }
+  .prog-step:last-child { border-right: none; }
+  .prog-step.done { background: var(--accent); }
+  .prog-step.active { background: var(--accent); }
+  .prog-count { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 12px; letter-spacing: 0.1px; color: var(--foreground); padding: 0 18px; border-left: 1px solid var(--border); display: flex; align-items: center; background: var(--surface2); white-space: nowrap; height: 40px; }
+
+  /* QUESTION */
+  .q-cat { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); color: var(--accent); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.2px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 3px; margin-bottom: 20px; }
+  .q-text { font-family: 'Instrument Serif', serif; font-weight: 400; font-style: italic; font-size: 40px; line-height: 1.2; letter-spacing: -0.3px; color: var(--foreground); margin-bottom: 32px; }
+  .options { display: flex; flex-direction: column; border: 1px solid var(--border); }
+  .option { display: flex; align-items: stretch; cursor: pointer; border-bottom: 1px solid var(--border); background: var(--surface1); transition: background .12s; }
+  .option:last-child { border-bottom: none; }
+  .option:hover { background: var(--surface2); }
+  .option.selected { background: var(--surface2); border-bottom-color: var(--accent); }
+  .opt-num { width: 54px; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0; color: var(--secondary); border-right: 1px solid var(--border); flex-shrink: 0; transition: color .12s; }
+  .option.selected .opt-num { color: var(--accent); }
+  .opt-text { padding: 18px 20px; font-size: 15px; font-weight: 400; color: var(--foreground); line-height: 1.6; transition: color .12s; }
+  .option.selected .opt-text { color: var(--accent); font-weight: 500; }
+  .q-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 24px; }
+
+  /* RESULTS — SCORE */
+  .lc-headline { font-family: 'Instrument Serif', serif; font-weight: 400; font-style: italic; font-size: 48px; line-height: 1.1; letter-spacing: -0.3px; color: var(--foreground); margin-bottom: 16px; }
+  .lc-sub { font-size: 16px; font-weight: 400; color: var(--secondary); line-height: 1.8; margin-bottom: 36px; }
+  .score-block { display: grid; grid-template-columns: 140px 1fr; border: 1px solid var(--border); margin-bottom: 36px; background: var(--surface1); }
+  .score-left { background: var(--foreground); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 18px; border-right: 1px solid var(--border); }
+  .score-num { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 52px; line-height: 1; color: var(--accent); }
+  .score-denom { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.2px; color: rgba(201, 169, 110, 0.5); text-align: center; margin-top: 6px; }
+  .score-right { padding: 26px 28px; }
+  .score-tier { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.2px; color: var(--accent); margin-bottom: 8px; }
+  .score-headline { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 24px; letter-spacing: -0.2px; color: var(--foreground); margin-bottom: 12px; }
+  .score-msg { font-size: 15px; font-weight: 400; color: var(--secondary); line-height: 1.7; }
+
+  /* TIER RECOMMENDATION */
+  .tier-rec { border: 1.5px solid var(--border); background: var(--surface1); margin-bottom: 28px; }
+  .tier-rec-header { background: var(--surface2); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border); }
+  .tier-rec-label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); }
+  .tier-rec-body { padding: 20px 24px; }
+  .tier-rec-name { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 20px; text-transform: uppercase; letter-spacing: 0; color: var(--foreground); margin-bottom: 8px; }
+  .tier-rec-why { font-size: 14px; font-weight: 300; color: var(--secondary); line-height: 1.6; }
+  .tier-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .tier-tag { display: inline-flex; align-items: center; gap: 5px; background: var(--ice-blue); border: 1.5px solid var(--primary); border-radius: 0; padding: 4px 10px; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--primary); }
+  .tier-tag::before { content: '→'; font-size: 7px; }
+
+  /* SECTION ROW */
+  .section-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .section-lbl { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: uppercase; color: var(--foreground); white-space: nowrap; }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* QUICK WINS */
+  .quick-wins { display: flex; flex-direction: column; margin-bottom: 28px; border: 1.5px solid var(--border); }
+  .qw-item { background: var(--surface1); border-bottom: 1.5px solid var(--border); }
+  .qw-item:last-child { border-bottom: none; }
+  .qw-header { display: flex; align-items: center; gap: 0; }
+  .qw-area { display: flex; align-items: center; justify-content: center; width: 50px; border-right: 1.5px solid var(--border); background: var(--foreground); align-self: stretch; flex-shrink: 0; }
+  .qw-area-icon { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; color: var(--primary); letter-spacing: 0; writing-mode: horizontal-tb; padding: 14px 0; }
+  .qw-title-wrap { flex: 1; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .qw-title { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 14px; letter-spacing: 0; text-transform: uppercase; color: var(--foreground); }
+  .qw-save { font-size: 12px; font-weight: 400; color: var(--secondary); white-space: nowrap; }
+
+  /* OPPORTUNITIES (small pills) */
+  .opps { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+  .opp-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--ice-blue); border: 1.5px solid var(--primary); border-radius: 0; padding: 4px 10px; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: uppercase; color: var(--primary); }
+  .opp-pill::before { content: '→'; font-size: 7px; }
+
+  /* PITCH + GUARANTEE */
+  .pitch-box { display: grid; grid-template-columns: auto 1fr; border: 2px solid var(--black); background: var(--white); margin-bottom: 12px; }
+  .pitch-price { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 44px; line-height: 1; color: var(--border); padding: 20px 22px; border-right: 2px solid var(--black); display: flex; align-items: center; }
+  .pitch-text { padding: 20px 22px; font-size: 14px; color: var(--secondary); line-height: 1.6; }
+  .pitch-text strong { color: var(--black); font-weight: 600; }
+  .guarantee-strip { display: flex; align-items: center; gap: 12px; border: 2px solid var(--black); border-top: none; background: var(--yellow); padding: 11px 16px; margin-bottom: 24px; }
+  .guarantee-icon { font-size: 16px; flex-shrink: 0; }
+  .guarantee-text { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--black); }
+
+  /* FORM */
+  .form-header { background: var(--foreground); border: 1.5px solid var(--foreground); border-bottom: none; padding: 12px 20px; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); }
+  .form-body { border: 1.5px solid var(--border); padding: 28px; background: var(--surface1); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-row { display: flex; flex-direction: column; gap: 6px; }
+  .form-row.full { grid-column: 1/-1; }
+  .form-row label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); }
+  .form-row input, .form-row select { padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 0; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 400; color: var(--foreground); background: var(--surface2); outline: none; transition: background .15s, border-color .15s; appearance: none; -webkit-appearance: none; }
+  .form-row input:focus, .form-row select:focus { background: var(--surface1); border-color: var(--primary); }
+  .form-row input::placeholder { color: var(--border); }
+  .sel-wrap { position: relative; }
+  .sel-wrap::after { content: '▼'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--secondary); pointer-events: none; font-size: 10px; }
+  .form-submit { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .form-submit .btn { width: 100%; justify-content: center; font-size: 13px; padding: 14px; }
+  .form-legal { font-size: 12px; font-weight: 300; color: var(--secondary); text-align: center; line-height: 1.6; }
+
+  /* CONFIRM */
+  .confirm-icon { width: 60px; height: 60px; background: var(--ice-blue); border: 1.5px solid var(--primary); border-radius: 0; display: flex; align-items: center; justify-content: center; margin-bottom: 28px; }
+  .confirm-icon svg { width: 28px; height: 28px; stroke: var(--primary); }
+  .confirm-title { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 52px; line-height: 1; text-transform: uppercase; color: var(--foreground); margin-bottom: 12px; }
+  .confirm-sub { font-size: 15px; font-weight: 300; color: var(--secondary); line-height: 1.7; margin-bottom: 32px; }
+  .wn-wrap { border: 1.5px solid var(--border); background: var(--surface1); margin-bottom: 28px; }
+  .wn-header { background: var(--surface2); padding: 12px 20px; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); border-bottom: 1.5px solid var(--border); }
+  .wn-step { display: flex; align-items: stretch; border-bottom: 1.5px solid var(--border); }
+  .wn-step:last-child { border-bottom: none; }
+  .wn-num { width: 54px; background: var(--foreground); border-right: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 16px; color: var(--primary); letter-spacing: 0; flex-shrink: 0; }
+  .wn-body { padding: 16px 20px; }
+  .wn-title { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 14px; letter-spacing: 0; text-transform: uppercase; color: var(--foreground); margin-bottom: 4px; }
+  .wn-desc { font-size: 14px; font-weight: 300; color: var(--secondary); line-height: 1.6; }
+
+  /* ROI CALCULATOR */
+  .roi-container { display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; margin-bottom: 40px; align-items: start; }
+  .roi-inputs { background: var(--surface1); padding: 28px; border: 1px solid var(--border); }
+  .roi-inputs .form-grid { margin-bottom: 0; gap: 16px; }
+  .roi-results { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .roi-card { border: 1px solid var(--border); background: var(--surface1); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .roi-card-content { display: flex; flex-direction: column; }
+  .roi-label { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.2px; color: var(--secondary); text-transform: uppercase; }
+  .roi-value { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; letter-spacing: -0.3px; color: var(--accent); margin-top: 6px; }
+  .roi-value.roi-green { color: #2D7A3A; }
+  .roi-value.roi-large { font-size: 36px; }
+
+  /* ROI INPUT ROW */
+  .roi-input-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
+  .roi-input-field { display: flex; flex-direction: column; gap: 6px; }
+  .roi-input-field label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); }
+  .roi-input-field input { padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 0; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 400; color: var(--foreground); background: var(--surface2); outline: none; transition: background .15s, border-color .15s; }
+  .roi-input-field input:focus { background: var(--surface1); border-color: var(--accent); }
+
+  /* IMPACT LEVEL SELECTOR */
+  .impact-selector { margin-bottom: 32px; padding: 24px; background: var(--surface2); border: 1px solid var(--border); }
+  .impact-label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); margin-bottom: 12px; display: block; }
+  .impact-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .impact-btn { padding: 12px 16px; border: 1.5px solid var(--border); background: var(--surface1); color: var(--foreground); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; cursor: pointer; transition: all .15s; border-radius: 0; }
+  .impact-btn:hover { border-color: var(--accent); background: var(--surface3); }
+  .impact-btn.selected { background: var(--accent); color: var(--surface1); border-color: var(--accent); }
+  .impact-description { font-size: 12px; color: var(--secondary); margin-top: 12px; line-height: 1.5; }
+  .impact-description strong { color: var(--foreground); }
+
+  /* SAVINGS & ASSESSMENT SIDE BY SIDE */
+  .savings-assessment-row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 40px; }
+  .roi-results-card { border: 1.5px solid var(--border); background: var(--surface1); padding: 24px; }
+  .roi-results-stack { display: flex; flex-direction: column; gap: 16px; }
+  .roi-result-item { display: flex; flex-direction: column; }
+  .roi-result-item .roi-label { font-size: 11px; margin-bottom: 6px; }
+  .roi-result-item .roi-value { font-size: 28px; }
+  .roi-result-item .roi-value.roi-large { font-size: 36px; }
+
+  /* SAVINGS CALCULATOR */
+  .savings-calc-container { border: 1.5px solid var(--accent); background: var(--surface2); padding: 32px; margin-bottom: 40px; }
+  .calc-title { font-family: 'Instrument Serif', serif; font-weight: 400; font-style: italic; font-size: 32px; line-height: 1.2; letter-spacing: -0.3px; color: var(--foreground); margin-bottom: 8px; }
+  .calc-subtitle { font-size: 14px; color: var(--secondary); margin-bottom: 24px; line-height: 1.6; }
+  .calc-note { font-size: 12px; color: var(--secondary); background: var(--surface1); border-left: 3px solid var(--accent); padding: 12px 16px; margin-bottom: 24px; line-height: 1.5; }
+
+  .calc-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .calc-input-field { display: flex; flex-direction: column; gap: 6px; }
+  .calc-input-field label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); }
+  .calc-input-field input { padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 0; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 400; color: var(--foreground); background: var(--surface1); outline: none; transition: background .15s, border-color .15s; }
+  .calc-input-field input:focus { background: var(--surface1); border-color: var(--accent); }
+
+  .calc-level-selector { margin-bottom: 28px; }
+  .calc-level-label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); margin-bottom: 12px; display: block; }
+  .calc-level-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .calc-level-btn { padding: 14px 16px; border: 1.5px solid var(--border); background: var(--surface1); color: var(--foreground); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; cursor: pointer; transition: all .15s; border-radius: 0; }
+  .calc-level-btn:hover { border-color: var(--accent); background: var(--surface3); }
+  .calc-level-btn.selected { background: var(--accent); color: var(--surface1); border-color: var(--accent); font-weight: 600; }
+
+  .calc-results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .calc-result-card { border: 1.5px solid var(--border); background: var(--surface1); padding: 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .calc-result-value { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 42px; line-height: 1; color: var(--accent); margin-bottom: 8px; }
+  .calc-result-value.green { color: #2D7A3A; }
+  .calc-result-label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--secondary); }
+
+  .calc-insights { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .insight-box { border: 1px solid var(--border); background: var(--surface1); padding: 20px; }
+  .insight-label { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 10px; letter-spacing: 0; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .insight-text { font-size: 13px; color: var(--secondary); line-height: 1.6; }
+  .insight-text em { color: var(--foreground); font-style: italic; }
+
+  @media (max-width: 520px) {
+    .hero-title { font-size: 44px; }
+    .q-text { font-size: 26px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .roi-input-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .impact-buttons { grid-template-columns: 1fr; }
+    .savings-assessment-row { grid-template-columns: 1fr; gap: 16px; }
+    .calc-title { font-size: 24px; }
+    .calc-inputs { grid-template-columns: 1fr; }
+    .calc-level-buttons { grid-template-columns: 1fr; }
+    .calc-results-grid { grid-template-columns: 1fr; }
+    .calc-insights { grid-template-columns: 1fr; }
+    .score-block { grid-template-columns: 1fr; }
+    .score-left { flex-direction: row; gap: 12px; border-right: none; border-bottom: 2px solid var(--black); padding: 16px 20px; }
+    .spec-grid { grid-template-columns: 1fr; }
+    .spec-cell { border-right: none; border-bottom: 2px solid var(--black); }
+    .spec-cell:last-child { border-bottom: none; }
+    .pitch-box { grid-template-columns: 1fr; }
+    .pitch-price { border-right: none; border-bottom: 2px solid var(--black); font-size: 32px; padding: 14px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Construct<span>Flows</span></div>
+  <div class="topbar-tag">AI Audit</div>
+</div>
+
+<!-- ═══ STAGE 1: HERO ═══ -->
+<div class="stage active" id="stage-hero">
+  <div class="pill">Free · 3 min · No sales pitch</div>
+  <h1 class="hero-title">Stop losing hours<br>to job <em>admin.</em></h1>
+  <p class="hero-sub">Your bidding, job tracking, and scheduling aren't as tight as you think. Take the Quiz. Then replace the spreadsheets with a system that actually works. The real question is how long you keep putting it off.</p>
+  <div class="spec-grid">
+    <div class="spec-cell"><div class="spec-label">Questions</div><div class="spec-val">10</div></div>
+    <div class="spec-cell"><div class="spec-label">Time required</div><div class="spec-val">~3 min</div></div>
+    <div class="spec-cell"><div class="spec-label">Cost</div><div class="spec-val">Free</div></div>
+  </div>
+  <ul class="hero-checks">
+    <li><div class="chk">✓</div>Built for contractors doing $3–15M</li>
+    <li><div class="chk">✓</div>Based on patterns from 50+ subcontractor audits</li>
+    <li><div class="chk">✓</div>Get specific AI prompts for your biggest time leaks</li>
+  </ul>
+  <button class="btn btn-yellow" onclick="startQuiz()">Take the Quiz →</button>
+  <p class="hero-note" style="margin-top:12px;">Contact info collected at the end — not before.</p>
+</div>
+
+<!-- ═══ STAGE 2: QUIZ ═══ -->
+<div class="stage" id="stage-quiz">
+  <div class="progress-wrap">
+    <div class="progress-steps-wrap"><div class="progress-steps" id="prog-steps"></div></div>
+    <div class="prog-count" id="prog-count">01 / 10</div>
+  </div>
+  <div id="quiz-body"></div>
+  <div class="q-nav">
+    <button class="btn btn-ghost" id="btn-back" onclick="prevQ()" style="display:none">← Back</button>
+    <button class="btn btn-yellow" id="btn-next" onclick="nextQ()" disabled>Next →</button>
+  </div>
+</div>
+
+<!-- ═══ STAGE 3: RESULTS + LEAD CAPTURE ═══ -->
+<div class="stage" id="stage-lead">
+  <div class="pill" style="margin-bottom:18px;">Your results are ready</div>
+  <h2 class="lc-headline">Here's what we<br>found in your<br>operation.</h2>
+  <p class="lc-sub">Based on your answers. Quick wins below are yours to use today — no call required.</p>
+
+  <!-- Score -->
+  <div class="score-block">
+    <div class="score-left">
+      <div class="score-num" id="score-display">—</div>
+      <div class="score-denom">/ 10 score</div>
+    </div>
+    <div class="score-right">
+      <div class="score-tier" id="score-tier">Calculating…</div>
+      <div class="score-headline" id="score-headline"></div>
+      <div class="score-msg" id="score-msg"></div>
+    </div>
+  </div>
+
+  <!-- AI SAVINGS CALCULATOR -->
+  <div class="savings-calc-container">
+    <h3 class="calc-title">Estimate your<br>operational savings.</h3>
+    <p class="calc-subtitle">See how much time and money AI can recover from manual admin work at your company.</p>
+    <div class="calc-note">Admin work can include RFIs, billing, change orders, reporting, coordination, invoicing, documentation, dispatching, and project management tasks.</div>
+
+    <!-- Calculator inputs -->
+    <div class="calc-inputs">
+      <div class="calc-input-field">
+        <label>Number of employees</label>
+        <input type="number" id="calc-people" value="3" min="1" max="50" oninput="calcSavings()" />
+      </div>
+      <div class="calc-input-field">
+        <label>Average annual salary ($)</label>
+        <input type="number" id="calc-salary" value="65000" min="30000" max="200000" oninput="calcSavings()" />
+      </div>
+      <div class="calc-input-field">
+        <label>Average admin hours per week</label>
+        <input type="number" id="calc-hours-admin" value="20" min="5" max="40" oninput="calcSavings()" />
+      </div>
+    </div>
+
+    <!-- Automation level selector -->
+    <div class="calc-level-selector">
+      <label class="calc-level-label">How much manual work is currently required?</label>
+      <div class="calc-level-buttons">
+        <button class="calc-level-btn" onclick="setSavingsLevel('low', event)">Low (10%)</button>
+        <button class="calc-level-btn selected" onclick="setSavingsLevel('medium', event)">Medium (25%)</button>
+        <button class="calc-level-btn" onclick="setSavingsLevel('high', event)">High (40%)</button>
+      </div>
+    </div>
+
+    <!-- Results grid -->
+    <div class="calc-results-grid">
+      <div class="calc-result-card">
+        <div class="calc-result-value green" id="calc-annual-savings">—</div>
+        <div class="calc-result-label">Annual savings</div>
+      </div>
+      <div class="calc-result-card">
+        <div class="calc-result-value" id="calc-hours-recovered">—</div>
+        <div class="calc-result-label">Hours recovered/week</div>
+      </div>
+      <div class="calc-result-card">
+        <div class="calc-result-value" id="calc-reduction-pct">—</div>
+        <div class="calc-result-label">Admin work reduced</div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="calc-insights">
+      <div class="insight-box">
+        <div class="insight-label">Industry research</div>
+        <div class="insight-text">Construction firms deploying AI report <em>30–60% reductions in administrative overhead</em> within 90 days of implementation.</div>
+      </div>
+      <div class="insight-box">
+        <div class="insight-label">Productivity impact</div>
+        <div class="insight-text">McKinsey research shows <em>20–40% productivity improvement</em> in knowledge-heavy construction management roles using AI tools.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Quick wins -->
+  <div class="section-row">
+    <div class="section-lbl">Quick wins — use these today</div>
+    <div class="section-line"></div>
+  </div>
+  <div class="quick-wins" id="quick-wins-list"></div>
+
+  <!-- Lead form -->
+  <div class="form-header">Get your full report + book the audit call</div>
+  <div class="form-body">
+    <div class="form-grid">
+      <div class="form-row"><label>First name</label><input type="text" id="f-first" placeholder="Mike" /></div>
+      <div class="form-row"><label>Last name</label><input type="text" id="f-last" placeholder="Torres" /></div>
+      <div class="form-row full"><label>Work email</label><input type="email" id="f-email" placeholder="mike@torreselectric.com" /></div>
+      <div class="form-row"><label>Company name</label><input type="text" id="f-company" placeholder="Torres Electric" /></div>
+      <div class="form-row">
+        <label>Trade</label>
+        <div class="sel-wrap">
+          <select id="f-trade">
+            <option value="">Select trade…</option>
+            <option>General Contractor</option>
+            <option>Electrical</option>
+            <option>Mechanical — HVAC</option>
+            <option>Mechanical — Plumbing</option>
+            <option>Mechanical — Both</option>
+            <option>Carpentry / Framing</option>
+            <option>Roofing</option>
+            <option>Drywall / Finishes</option>
+            <option>Masonry</option>
+            <option>Concrete</option>
+            <option>Landscaping</option>
+            <option>Painting</option>
+            <option>Flooring</option>
+            <option>Kitchen & Bath</option>
+            <option>Demolition</option>
+            <option>Other specialty trade</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row full"><label>Phone (optional — for booking your audit call)</label><input type="tel" id="f-phone" placeholder="(555) 000-0000" /></div>
+    </div>
+    <div class="form-submit">
+      <button class="btn btn-yellow" onclick="submitLead()">Book my AI Clarity Audit →</button>
+      <p class="form-legal">No spam. We'll email your full results and a booking link. That's it.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STAGE 4: CONFIRM ═══ -->
+<div class="stage" id="stage-confirm">
+  <div class="confirm-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  </div>
+  <h2 class="confirm-title">You're all<br>set.</h2>
+  <p class="confirm-sub" id="confirm-sub">We'll send your full results to your inbox in the next few minutes, along with a link to book your AI Clarity Audit call.</p>
+  <div class="wn-wrap">
+    <div class="wn-header">What happens next</div>
+    <div class="wn-step"><div class="wn-num">01</div><div class="wn-body"><div class="wn-title">Check your inbox</div><div class="wn-desc">Your AI opportunity summary and audit booking link arrive in a few minutes.</div></div></div>
+    <div class="wn-step"><div class="wn-num">02</div><div class="wn-body"><div class="wn-title">Book the 45-min discovery call</div><div class="wn-desc">We go deeper on your 2–3 biggest time leaks. No pitch — just diagnosis.</div></div></div>
+    <div class="wn-step"><div class="wn-num">03</div><div class="wn-body"><div class="wn-title">Receive your AI Clarity Report</div><div class="wn-desc">3–7 custom tool recommendations, priority matrix, and a 4-day quick-start plan for your operation.</div></div></div>
+    <div class="wn-step"><div class="wn-num">04</div><div class="wn-body"><div class="wn-title">30-min review call</div><div class="wn-desc">We walk every recommendation together. Most clients decide on next steps in this call.</div></div></div>
+  </div>
+  <p style="font-size:13px; color:var(--secondary); text-align:center;">Questions? <a href="mailto:hello@constructflows.com" style="color:var(--black); font-weight:600; text-decoration:none;">hello@constructflows.com</a></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4"></script>
+<script>
+// Initialize Supabase
+const SUPABASE_URL = 'https://fappsarnztagfboncywm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YjY4HfaOEKWYKafCALOg8A_gnmIRlPy';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Store contact ID for linking quiz responses
+let currentContactId = null;
+</script>
+<script>
+const questions = [
+  { id:'bid-tracking', text:"How do you track bids you've submitted?", category:'Bidding',
+    options:[{text:"Spreadsheet or whiteboard — updated when I remember",score:3},{text:"Email folders and memory",score:3},{text:"A basic shared doc or CRM",score:1},{text:"A proper system — every bid's status visible at a glance",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Airtable', 'Monday.com']},
+  { id:'daily-reports', text:"How does your superintendent handle daily reports?", category:'Field operations',
+    options:[{text:"Dictates into notes or writes freehand — takes 30–45 min",score:3},{text:"Fills out a paper form or basic template",score:2},{text:"Uses a digital form but still writes all the narrative",score:2},{text:"Automated or AI-assisted — takes under 10 minutes",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Otter.ai', 'Notion']},
+  { id:'owner-reports', text:"How do weekly owner or GC progress reports get built?", category:'Reporting',
+    options:[{text:"Written from scratch every time — takes hours",score:3},{text:"Copy-pasted from emails and notes",score:3},{text:"Template exists, but still fully manual",score:2},{text:"Mostly automated — 15 minutes or less to review",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Notion', 'Microsoft Copilot']},
+  { id:'change-orders', text:"How long to get a change order package back to the GC?", category:'Change orders',
+    options:[{text:"2–3 days — pulling everything together manually",score:3},{text:"A week or more sometimes",score:3},{text:"About a day — template exists but still lots of work",score:2},{text:"Same day — we've got this dialed in",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Docusign', 'Airtable']},
+  { id:'bid-prep', text:"How long does it take your estimator to prep a bid from specs to submission?", category:'Estimating',
+    options:[{text:"Full day or more — reading specs, writing scope, clarifications",score:3},{text:"Half day — we have some templates but it's still heavy",score:2},{text:"2–3 hours — reasonably efficient",score:1},{text:"Under 2 hours — AI or templates do most of the heavy lifting",score:0}],
+    tools: ['Claude', 'Perplexity', 'ChatGPT', 'Excel with AI']},
+  { id:'rfis', text:"How many hours a week does RFI and change order writing take your team?", category:'RFI management',
+    options:[{text:"5+ hours — it's a significant time drain",score:3},{text:"3–5 hours a week",score:2},{text:"1–2 hours a week",score:1},{text:"Under an hour — we have it systemized",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Notion', 'Monday.com']},
+  { id:'morning-routine', text:"How do you start your day understanding where each job stands?", category:'Daily ops',
+    options:[{text:"Phone calls and texts to foremen — 30+ minutes",score:3},{text:"I check emails and piece it together",score:3},{text:"I have a log but it's not always current",score:2},{text:"I get an automated briefing — 5 minutes to read",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Zapier', 'Airtable']},
+  { id:'role-pain', text:"Which role at your company spends the most non-field time on paperwork?", category:'Your team',
+    options:[{text:"Superintendent — daily reports, JHAs, toolbox talks",score:3},{text:"Project manager — owner reports, RFIs, change orders",score:3},{text:"Estimator — bid prep, scope review, clarifications",score:3},{text:"It's spread across everyone equally",score:2}],
+    tools: ['Claude', 'ChatGPT', 'Notion', 'Otter.ai']},
+  { id:'job-status', text:"How do you know the real-time status of each active job?", category:'Job tracking',
+    options:[{text:"I call the foreman or visit the site",score:3},{text:"Text messages and gut feel",score:3},{text:"A shared doc, updated occasionally",score:2},{text:"A dashboard — every job visible at a glance",score:0}],
+    tools: ['Monday.com', 'Airtable', 'Claude', 'Notion']},
+  { id:'hours-lost', text:"How many hours a week do you personally spend on pure admin?", category:'Admin burden',
+    options:[{text:"10+ hours — it's killing me",score:3},{text:"5–10 hours a week",score:2},{text:"2–5 hours a week",score:1},{text:"Under 2 hours — I've got systems",score:0}],
+    tools: ['Claude', 'ChatGPT', 'Make/Zapier', 'Notion']}
+];
+
+// Quick win content per flagged question
+const quickWins = {
+  'bid-tracking': {
+    area: 'BID',
+    title: 'Bid pipeline visibility',
+    save: 'Save 1–2 hrs/week',
+    problem: 'Tracking bids in a spreadsheet or email means status gets lost, deadlines get missed, and you never have a clean view of what\'s pending vs. won vs. dead.',
+    promptLabel: 'Paste this into Claude or ChatGPT after any bid decision:',
+    prompt: `I just [won / lost / submitted] a bid for [project name]. 
+
+Update my bid log summary:
+- Project: [name]
+- Client/GC: [name]
+- Bid amount: $[X]
+- Status: [Won / Lost / Submitted / Pending]
+- Decision date: [date]
+- Notes: [any context]
+
+Write a one-sentence follow-up email to [GC name] confirming the outcome and keeping the relationship warm.`
+  },
+  'daily-reports': {
+    area: 'FIELD',
+    title: 'Daily report drafting',
+    save: 'Save 30–45 min/day per super',
+    problem: 'Superintendents spending 30–45 minutes writing daily reports is one of the single biggest recoverable time losses in construction. Voice memo + AI cuts this to under 10 minutes.',
+    promptLabel: 'Have your super voice-memo their day, then paste the transcript here:',
+    prompt: `You are a construction superintendent writing a professional daily report. 
+
+Using the notes below, write a formal daily report that includes:
+- Date and project name (I'll fill these in)
+- Work completed today by trade
+- Crew count and hours
+- Materials delivered or needed
+- Weather conditions
+- Open items or delays
+- Schedule status (on track / behind / ahead)
+
+Keep it factual, professional, and under 300 words.
+
+Notes from today: [paste voice memo transcript or bullet notes here]`
+  },
+  'owner-reports': {
+    area: 'PM',
+    title: 'Owner / GC progress reports',
+    save: 'Save 2–3 hrs/week per PM',
+    problem: 'Writing owner reports from scratch every week is pure assembly work — pulling from emails, logs, and memory. AI can draft a complete report in 2 minutes from your notes.',
+    promptLabel: 'Copy this prompt, fill in your project details, paste into Claude:',
+    prompt: `Write a professional weekly owner progress report for a construction project.
+
+Project: [name]
+Owner/GC: [name]
+Report period: [dates]
+
+This week's progress:
+- [Trade 1]: [what was completed]
+- [Trade 2]: [what was completed]
+
+Schedule status: [on track / X days behind / ahead]
+Budget status: [on track / note any variances]
+Open items: [list any outstanding RFIs, submittals, decisions needed]
+Next week plan: [what's happening]
+
+Format as a professional letter. Keep it under 400 words. Use clear headings.`
+  },
+  'change-orders': {
+    area: 'CO',
+    title: 'Change order narratives',
+    save: 'Save 1–2 hrs per CO',
+    problem: 'Writing the narrative for a change order — justifying the cost, referencing the contract, describing the scope — takes time most PMs don\'t have. AI writes a solid first draft in 60 seconds.',
+    promptLabel: 'Paste this into Claude with your CO details:',
+    prompt: `Write a professional change order request narrative for a construction project.
+
+Project: [name]
+GC/Owner: [name]
+Change description: [what changed — new scope, unforeseen condition, owner-directed change]
+Contract reference (if any): [spec section, drawing number, or RFI number]
+Labor impact: [hours and trades affected]
+Material impact: [what materials are needed]
+Schedule impact: [days added, if any]
+Total cost: $[X]
+
+Write a clear, professional narrative (150–250 words) that:
+1. Describes what changed and why
+2. References the contract basis for the change
+3. Summarizes the cost and schedule impact
+4. Requests written approval to proceed`
+  },
+  'bid-prep': {
+    area: 'ESTIMATING',
+    title: 'Bid scope review + clarifications',
+    save: 'Save 3–6 hrs per bid',
+    problem: 'Reading through specs to find scope gaps, exclusions, and clarifications is one of the most time-consuming parts of estimating. AI can scan a spec section and flag everything worth questioning in minutes.',
+    promptLabel: 'Copy a spec section, paste it with this prompt:',
+    prompt: `You are an experienced electrical [or mechanical] subcontractor reviewing a project specification for bidding purposes.
+
+Review the specification section below and identify:
+1. Items that are ambiguous or could be interpreted multiple ways
+2. Scope items that are often missed by subs and should be clarified
+3. Any requirements that will significantly affect labor or material cost
+4. Suggested clarifications or exclusions to include in our bid
+
+Spec section: [paste spec text here]
+
+Format as a numbered list. Be specific. Flag anything that could become a change order later.`
+  },
+  'rfis': {
+    area: 'RFI',
+    title: 'RFI writing',
+    save: 'Save 1–2 hrs per RFI',
+    problem: 'Writing a clear, professional RFI that gets a fast response takes skill and time. A poorly written RFI wastes everyone\'s time. AI writes a clean, complete RFI in under 2 minutes.',
+    promptLabel: 'Fill in the blanks and paste into Claude:',
+    prompt: `Write a formal RFI (Request for Information) for a construction project.
+
+Project: [name]
+RFI Number: [#]
+To: [Architect / Engineer / GC name]
+Subject: [brief description]
+
+Issue: [describe what's unclear, conflicting, or missing in the drawings or specs]
+Location: [drawing number, spec section, or area of the building]
+Impact if not resolved: [schedule delay, incorrect installation, cost impact]
+Information requested: [exactly what decision or clarification is needed]
+Response needed by: [date]
+
+Write a professional RFI in standard construction format. Be specific and factual. Keep it under 200 words.`
+  },
+  'morning-routine': {
+    area: 'OPS',
+    title: 'Morning project brief',
+    save: 'Save 30 min every morning',
+    problem: 'Starting your day by calling foremen and checking emails to piece together job status costs 30+ minutes daily. A structured morning brief built from yesterday\'s logs can replace all of it.',
+    promptLabel: 'Run this every morning using yesterday\'s daily reports:',
+    prompt: `You are a construction project manager. Using the daily reports below, write a morning project brief for today.
+
+For each active job, summarize:
+- Where the job stands (% complete, current phase)
+- Any open issues from yesterday that need follow-up today
+- What's scheduled for today by trade
+- Any materials, inspections, or decisions needed today
+
+Keep each job summary to 3–5 bullet points. Flag anything urgent.
+
+Yesterday's daily reports:
+[Paste daily report text for each job here]`
+  },
+  'role-pain': {
+    area: 'TEAM',
+    title: 'Role-specific AI workflows',
+    save: 'Save 1–2 hrs/day per person',
+    problem: 'The biggest gains come from targeting AI at the specific role carrying the most paperwork burden. One person saving 90 minutes a day is 7.5 hours a week returned to your operation.',
+    promptLabel: 'Use this to generate a JHA in under 2 minutes (for supers):',
+    prompt: `Write a Job Hazard Analysis (JHA) for the following construction task.
+
+Task: [describe the specific work — e.g., "Installing conduit in an energized electrical room"]
+Trade: [Electrical / Mechanical / etc.]
+Location: [where on the jobsite]
+Crew size: [number of workers]
+Equipment used: [tools, lifts, etc.]
+
+For each step of the task, identify:
+1. The hazard present
+2. The risk level (High / Medium / Low)
+3. The control measure to mitigate the hazard
+
+Format as a table. Include a PPE requirements section at the end.`
+  },
+  'job-status': {
+    area: 'TRACKING',
+    title: 'Job status visibility',
+    save: 'Save 30–60 min/day',
+    problem: 'Not having a live view of job status means you spend your day pulling information instead of acting on it. Even a simple AI-assisted standup summary can replace 30 minutes of calls.',
+    promptLabel: 'Use this as a standup email template for foremen to fill out:',
+    prompt: `[FOREMAN STANDUP — takes 2 minutes to fill out]
+
+Job: [name]
+Date: [today]
+Crew on site today: [number]
+Work completed yesterday: [2–3 sentences]
+Work planned today: [2–3 sentences]
+Anything blocking progress: [yes/no — if yes, describe]
+Materials needed in next 48 hours: [list]
+Safety observations: [any near misses, hazards, or incidents]
+
+---
+[After foremen submit, paste all responses into Claude with this prompt:]
+
+Summarize these foreman standups into a 1-page project status briefing. Flag any blockers that need PM attention today.`
+  },
+  'hours-lost': {
+    area: 'ADMIN',
+    title: 'Admin time recovery',
+    save: 'Save 5–10 hrs/week',
+    problem: 'Most construction admin time goes to tasks that are repetitive, formulaic, and document-heavy — exactly what AI handles best. The quick wins above will each chip away at this number.',
+    promptLabel: 'Use this to draft any subcontractor scope letter in 60 seconds:',
+    prompt: `Write a subcontractor scope letter for the following trade package.
+
+Project: [name]
+Subcontractor: [company name]
+Trade: [Electrical / Mechanical / Framing / etc.]
+Contract amount: $[X]
+Start date: [date]
+Substantial completion: [date]
+
+Scope of work includes:
+- [item 1]
+- [item 2]
+- [item 3]
+
+Specifically excluded from this scope:
+- [exclusion 1]
+- [exclusion 2]
+
+Write a professional scope letter (250–350 words) confirming the subcontract award, summarizing the scope, listing key dates, and specifying what's excluded. Use a formal business letter format.`
+  },
+  'submittals': {
+    area: 'SUBMITTALS',
+    title: 'Submittal tracking & status',
+    save: 'Save 2–3 hrs/week',
+    problem: 'Tracking submittals, responses, and resubmittals across multiple subs and trades is a constant back-and-forth nightmare. Missing a submittal deadline can delay the whole job — and chasing down statuses eats hours.',
+    promptLabel: 'Use this to summarize submittal status for your PM daily standups:',
+    tools: ['Claude', 'Airtable', 'Monday.com', 'Notion'],
+    prompt: `You are a construction project manager. Summarize the submittal status below into a concise daily report.
+
+Project: [name]
+Report date: [today]
+
+For each submittal, note:
+- Item / Product name
+- Submitted by: [trade/sub]
+- Date submitted: [date]
+- Status: [With architect / Approved / Rejected / Resubmit required]
+- Days pending: [X]
+- Owner action needed: [yes/no]
+
+Summarize:
+1. All submittals pending review (how many, oldest date)
+2. Any rejected items needing resubmit
+3. Anything blocking the critical path
+
+Format as a bullet list. Flag anything overdue (>10 days pending).
+
+Submittal log:
+[Paste your submittal tracking sheet or email chain here]`
+  },
+  'safety-docs': {
+    area: 'SAFETY',
+    title: 'Safety & OSHA documentation',
+    save: 'Save 3–5 hrs/week per super',
+    problem: 'JHAs, incident reports, safety logs, and toolbox talk documentation are compliance requirements that superintendents often rush or skip due to time pressure. Inconsistent documentation creates liability and audit risk.',
+    promptLabel: 'Use this to draft a JHA in under 3 minutes:',
+    tools: ['Claude', 'ChatGPT', 'Notion', 'Docusign'],
+    prompt: `You are a safety-conscious construction supervisor. Write a detailed Job Hazard Analysis (JHA) for the following task.
+
+Task: [describe specific work — e.g., "Hanging drywall on suspended 16-foot ceiling"]
+Trade: [Electrical / Mechanical / Framing / General Labor / etc.]
+Location: [where on jobsite]
+Crew size: [number of workers]
+Equipment/tools used: [list all equipment, lifts, scaffolding, etc.]
+Site conditions: [weather, confined space, proximity to utilities, etc.]
+
+For each major step of the task, identify:
+1. The specific hazard present
+2. Risk level (High / Medium / Low)
+3. Engineering or work practice control to eliminate or reduce the hazard
+4. PPE required
+
+Include a section on emergency procedures and first aid kit location.
+
+Format as a professional safety document (300–500 words). Use a table format for the hazard analysis section.`
+  },
+  'punch-closeout': {
+    area: 'CLOSEOUT',
+    title: 'Punch list & project closeout',
+    save: 'Save 2–3 hrs per phase',
+    problem: 'Managing punch lists across trades, tracking completion, and coordinating final inspections is chaotic without a system. Most punch work is discovered at the last minute, delaying substantial completion and final payment.',
+    promptLabel: 'Use this to generate a punch list summary email:',
+    tools: ['Claude', 'Airtable', 'Monday.com', 'Excel AI'],
+    prompt: `Write a professional punch list management summary for a construction project phase.
+
+Project: [name]
+Phase: [framing / mechanical rough-in / drywall / final / etc.]
+As of date: [today]
+
+Punch items summary:
+- Total items: [#]
+- Critical path items: [#]
+- Trade breakdown: [E.g., "5 electrical, 3 mechanical, 7 framing, 2 finishes"]
+- Owner-caused items: [#]
+
+For each critical item, note:
+- Item description
+- Responsible trade
+- Target completion date
+- Current status (In progress / Pending material / On hold / Completed)
+
+Write a professional email (200–300 words) to the GC or owner summarizing:
+1. Overall punch status and % complete
+2. Critical items blocking final inspection
+3. Expected substantial completion date
+4. Any items requiring owner decision or material delivery
+
+Keep it factual and action-oriented.
+
+Punch data:
+[Paste your punch list items here]`
+  },
+  'invoicing': {
+    area: 'BILLING',
+    title: 'Invoice processing & payment tracking',
+    save: 'Save 1–2 hrs/week',
+    problem: 'Managing subcontractor invoices, tracking payment status, and reconciling against contracts drains admin time and often creates payment delays that damage relationships with your subs.',
+    promptLabel: 'Use this to process a batch of sub invoices in minutes:',
+    tools: ['Claude', 'ChatGPT', 'Airtable', 'QuickBooks AI'],
+    prompt: `You are a construction project manager processing subcontractor invoices.
+
+For each invoice below, verify and summarize:
+- Sub name and trade
+- Invoice #, date, and amount
+- Work period covered
+- Contract amount to date vs. invoice total
+- Any discrepancies or missing documentation
+- Approval status for accounting
+
+Project: [name]
+Month: [month/year]
+
+Expected payment processing time: [X days from approval]
+
+Write a summary (150–200 words) for accounting including:
+1. Total invoice amount this period by trade
+2. Cumulative amount paid to date vs. contract value
+3. Any invoices requiring clarification before approval
+4. Recommended approval/hold status for each
+
+Also draft a brief email response to any sub with discrepancies, asking for clarification.
+
+Invoice batch:
+[Paste invoice headers, amounts, and notes here]`
+  }
+};
+
+// Tier routing logic
+const tierRoutes = {
+  super: { name:'Assessment + Field Operations Toolkit', why:'Your answers point to the superintendent role carrying the most paperwork burden. The Field Operations Toolkit targets daily reports, JHAs, toolbox talks, and punch lists — the tasks eating 45–90 minutes of every super\'s day.', tags:['Field Ops Toolkit — $2,500'] },
+  pm: { name:'Assessment + Project Controls Package', why:'Your answers show the PM function is the biggest time drain — owner reports, RFI writing, change orders, and meeting minutes. The Project Controls Package targets exactly those 4–8 hours a week.', tags:['Project Controls — $3,000'] },
+  estimator: { name:'Assessment + Estimating & Bidding Package', why:'Your answers point to estimating as the highest-leverage target. Recovering 3–6 hours per bid across scope review, clarifications, and bid narratives compounds significantly over a year.', tags:[] },
+  high: { name:'Assessment + Full Team Rollout', why:'With multiple roles showing high admin burden, the biggest return comes from rolling AI workflows out across the whole team at once rather than targeting one role at a time.', tags:['Full Team Rollout — $4,500'] },
+  default: { name:'AI Clarity Assessment', why:'Based on your answers, the Assessment will identify exactly where to start. Most contractors find 1–2 clear wins that pay for the audit in the first week.', tags:[] }
+};
+
+let cur = 0, answers = {}, impactLevel = 'medium', savingsLevel = 'medium';
+
+function show(id) {
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  window.scrollTo(0,0);
+}
+
+function startQuiz() { show('stage-quiz'); renderQ(); }
+
+function renderQ() {
+  const q = questions[cur], nums = ['01','02','03','04'], ex = answers[q.id];
+  document.getElementById('prog-steps').innerHTML = questions.map((_,i) => {
+    let c = 'prog-step';
+    if (i < cur) c += ' done'; else if (i === cur) c += ' active';
+    return `<div class="${c}"></div>`;
+  }).join('');
+  document.getElementById('prog-count').textContent = pad(cur+1)+' / '+pad(questions.length);
+  document.getElementById('quiz-body').innerHTML = `
+    <div class="q-cat">${q.category}</div>
+    <div class="q-text">${q.text}</div>
+    <div class="options">
+      ${q.options.map((o,i) => `
+        <div class="option${ex===i?' selected':''}" onclick="pick(${i})">
+          <div class="opt-num">${nums[i]}</div>
+          <div class="opt-text">${o.text}</div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('btn-back').style.display = cur > 0 ? 'inline-flex' : 'none';
+  const nb = document.getElementById('btn-next');
+  nb.disabled = ex === undefined;
+  nb.textContent = cur === questions.length-1 ? 'See my results →' : 'Next →';
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function pick(i) {
+  answers[questions[cur].id] = i;
+  document.querySelectorAll('.option').forEach((el,idx) => el.classList.toggle('selected', idx===i));
+  document.getElementById('btn-next').disabled = false;
+}
+
+function nextQ() {
+  if (cur < questions.length-1) { cur++; renderQ(); }
+  else { buildResults(); show('stage-lead'); }
+}
+function prevQ() { if (cur > 0) { cur--; renderQ(); } }
+
+function buildResults() {
+  let total = 0;
+  const high = [];
+  questions.forEach(q => {
+    const idx = answers[q.id];
+    if (idx !== undefined) {
+      const s = q.options[idx].score;
+      total += s;
+      if (s >= 2) high.push(q.id);
+    }
+  });
+
+  const score = Math.round((total / (questions.length * 3)) * 10);
+  document.getElementById('score-display').textContent = score;
+
+  let tier, headline, msg;
+  if (score >= 8) {
+    tier = 'High opportunity'; headline = 'Significant time on the table.';
+    msg = "Your operation has substantial admin overhead AI can cut. You're likely losing 8–12 hours a week to tasks that could be automated or streamlined in the next 30 days.";
+  } else if (score >= 5) {
+    tier = 'Solid opportunity'; headline = 'Clear gaps to close.';
+    msg = "You've got some systems in place, but there are identifiable gaps where AI could save 4–7 hours a week and reduce the manual tracking you're still carrying.";
+  } else {
+    tier = 'Optimization opportunity'; headline = 'Room to accelerate.';
+    msg = "You're more organized than most. An audit would focus on AI tools that compound what's already working — less rebuilding, more accelerating.";
+  }
+  document.getElementById('score-tier').textContent = tier;
+  document.getElementById('score-headline').textContent = headline;
+  document.getElementById('score-msg').textContent = msg;
+
+
+  // Quick wins — show top 6-8 flagged areas, or first 3-4 if none flagged
+  const wins = high.length > 0 ? high.slice(0, 6) : Object.keys(quickWins).slice(0, 4);
+  document.getElementById('quick-wins-list').innerHTML = wins.map((id, wi) => {
+    const w = quickWins[id];
+    if (!w) return '';
+    return `
+      <div class="qw-item" id="qw-${wi}">
+        <div class="qw-header">
+          <div class="qw-area"><div class="qw-area-icon">${w.area}</div></div>
+          <div class="qw-title-wrap">
+            <div class="qw-title">${w.title}</div>
+            <div class="qw-save">${w.save}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Initialize savings calculator
+  calcSavings();
+}
+
+function toggleWin(i) {
+  const el = document.getElementById('qw-'+i);
+  if (!el) return;
+  el.classList.toggle('open');
+}
+
+function copyPrompt(i, e) {
+  e.stopPropagation();
+  const el = document.getElementById('prompt-'+i);
+  const btn = el.querySelector('.copy-btn');
+  // Get text without the button text
+  const text = el.childNodes[0].textContent;
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function setImpactLevel(level, e) {
+  impactLevel = level;
+
+  // Update button states
+  document.querySelectorAll('.impact-btn').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  if (e) e.target.classList.add('selected');
+
+  // Update description
+  const descMap = {
+    low: '<strong>Low:</strong> You\'re fairly organized — AI would optimize what\'s already in place.',
+    medium: '<strong>Medium:</strong> You have some processes but still spend significant time on manual tasks.',
+    high: '<strong>High:</strong> Heavy manual admin work — AI could dramatically streamline your operations.'
+  };
+  document.getElementById('impact-desc').innerHTML = descMap[level];
+
+  // Recalculate ROI with new impact level
+  calcROI();
+}
+
+function calcROI() {
+  const people = parseInt(document.getElementById('roi-people')?.value) || 2;
+  const salary = parseInt(document.getElementById('roi-salary')?.value) || 60000;
+  const hourlyRate = salary / 2080; // 52 weeks * 40 hours per year
+  const hoursCurrent = parseInt(document.getElementById('roi-hours-current')?.value) || 10;
+  const hoursFuture = parseInt(document.getElementById('roi-hours-future')?.value) || 3;
+
+  // Impact level multipliers — affects potential hours that could be saved
+  const impactMultipliers = {
+    low: 0.35,      // 35% of potential savings (already fairly optimized)
+    medium: 0.65,   // 65% of potential savings (moderate optimization needed)
+    high: 1.0       // 100% of potential savings (heavy manual work)
+  };
+
+  const multiplier = impactMultipliers[impactLevel] || 0.65;
+
+  // Calculate base hours saved, then apply impact multiplier
+  const baseSaved = (hoursCurrent - hoursFuture) * people;
+  const hoursSaved = Math.round(baseSaved * multiplier * 10) / 10; // Round to 1 decimal
+  const weeklySavings = hoursSaved * hourlyRate;
+  const annualSavings = weeklySavings * 52;
+
+  // Update results card (side by side with assessment)
+  if (document.getElementById('roi-hours-saved-card')) {
+    document.getElementById('roi-hours-saved-card').textContent = hoursSaved + ' hrs';
+    document.getElementById('roi-week-savings-card').textContent = '$' + Math.round(weeklySavings).toLocaleString();
+    document.getElementById('roi-annual-savings-card').textContent = '$' + Math.round(annualSavings).toLocaleString();
+  }
+}
+
+async function submitLead() {
+  const first = document.getElementById('f-first').value.trim();
+  const last = document.getElementById('f-last').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const company = document.getElementById('f-company').value.trim();
+  const trade = document.getElementById('f-trade').value;
+  const phone = document.getElementById('f-phone').value.trim();
+
+  if (!first || !email || !company || !trade) {
+    alert('Please fill in your name, email, company, and trade.');
+    return;
+  }
+
+  try {
+    // Calculate score
+    let total = 0;
+    questions.forEach(q => {
+      const idx = answers[q.id];
+      if (idx !== undefined) {
+        total += q.options[idx].score;
+      }
+    });
+    const score = Math.round((total / (questions.length * 3)) * 10);
+
+    // Build quiz answers array
+    const quizAnswersArray = questions.map(q => {
+      const idx = answers[q.id];
+      if (idx !== undefined) {
+        return {
+          question_id: q.id,
+          question_text: q.text,
+          answer_index: idx,
+          answer_text: q.options[idx].text
+        };
+      }
+      return null;
+    }).filter(a => a !== null);
+
+    // Save everything to quiz_submissions table
+    const { data, error } = await supabase
+      .from('quiz_submissions')
+      .insert([{
+        first_name: first,
+        last_name: last,
+        email: email,
+        company: company,
+        trade: trade,
+        phone: phone || null,
+        score: score,
+        quiz_answers: quizAnswersArray
+      }])
+      .select();
+
+    if (error) {
+      console.error('Error saving submission:', error);
+      alert('Error saving your information. Please try again.');
+      return;
+    }
+
+    document.getElementById('confirm-sub').textContent =
+      `We'll send your full results to ${email} in the next few minutes, along with a link to book your AI Clarity Audit call.`;
+    show('stage-confirm');
+  } catch (err) {
+    console.error('Error:', err);
+    alert('An error occurred. Please try again.');
+  }
+}
+
+function setSavingsLevel(level, e) {
+  savingsLevel = level;
+
+  // Update button states
+  document.querySelectorAll('.calc-level-btn').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  if (e) e.target.classList.add('selected');
+
+  // Recalculate with new level
+  calcSavings();
+}
+
+function calcSavings() {
+  const people = parseInt(document.getElementById('calc-people')?.value) || 3;
+  const salary = parseInt(document.getElementById('calc-salary')?.value) || 65000;
+  const hoursAdmin = parseInt(document.getElementById('calc-hours-admin')?.value) || 20;
+
+  // Savings rates based on automation level
+  const savingsRates = {
+    low: 0.10,     // 10% of admin work recovered
+    medium: 0.25,  // 25% of admin work recovered
+    high: 0.40     // 40% of admin work recovered
+  };
+
+  const rate = savingsRates[savingsLevel] || 0.25;
+
+  // Calculate annual savings
+  // (hours admin per week × 52 weeks × hourly rate × people × savings rate)
+  const hourlyRate = salary / 2080;
+  const annualAdminHours = hoursAdmin * 52 * people;
+  const annualSavings = annualAdminHours * hourlyRate * rate;
+
+  // Hours recovered per week
+  const hoursRecovered = (hoursAdmin * rate).toFixed(1);
+
+  // Reduction percentage
+  const reductionPct = Math.round(rate * 100);
+
+  // Update display
+  if (document.getElementById('calc-annual-savings')) {
+    document.getElementById('calc-annual-savings').textContent = '$' + Math.round(annualSavings).toLocaleString();
+    document.getElementById('calc-hours-recovered').textContent = hoursRecovered + ' hrs';
+    document.getElementById('calc-reduction-pct').textContent = reductionPct + '%';
+  }
+}
+
+// Initialize ROI and savings calculators on page load
+window.addEventListener('load', () => {
+  if (document.getElementById('roi-people')) { calcROI(); }
+  if (document.getElementById('calc-people')) { calcSavings(); }
+});
+</script>
+</body>
+</html>
