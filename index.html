@@ -1063,8 +1063,8 @@ async function submitLead() {
       .select();
 
     if (error) {
-      console.error('Error saving submission:', error);
-      alert('Error saving your information. Please try again.');
+      console.error('Error saving submission:', error.message, error.status, error.code);
+      alert(`Error: ${error.message || 'Failed to save'}`);
       return;
     }
 
